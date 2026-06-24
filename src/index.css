@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap');
+
+@theme {
+  --color-primary-teal: #0F766E;
+  --color-primary-light: #14B8A6;
+  --color-bg-base: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-border-base: #E2E8F0;
+  --color-text-primary: #1E293B;
+  --color-text-muted: #64748B;
+  --color-success: #10B981;
+  --color-amber-warning: #F59E0B;
+  --color-urgent: #EF4444;
+
+  --font-poppins: "Poppins", sans-serif;
+  --font-inter: "Inter", sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-bg-base);
+    color: var(--color-text-primary);
+    font-family: var(--font-inter);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-poppins);
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
