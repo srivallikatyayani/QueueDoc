@@ -1,257 +1,208 @@
 <div align="center">
 
-# 🏥 QueueDoc
-### *Live Clinic Queue Management — Reimagined*
+# QueueDoc
+### Live Clinic Queue Management System
 
-**Eliminating the chaos of paper tokens. Giving every patient a transparent, real-time window into their wait.**
+**A full-stack, real-time patient queue management platform built to replace paper token systems in outpatient clinics.**
 
-[![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://mongodb.com/)
-[![Socket.io](https://img.shields.io/badge/Socket.io-Realtime-010101?style=for-the-badge&logo=socket.io)](https://socket.io/)
-[![TailwindCSS](https://img.shields.io/badge/Tailwind-CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Hackathon](https://img.shields.io/badge/Wooble-Hackathon%202026-FF6B6B?style=for-the-badge)](#)
-
----
-
-> **"76% of Indian clinics still run on paper tokens. We fixed that."**
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=white)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://mongodb.com/)
+[![Socket.io](https://img.shields.io/badge/Socket.io-4.x-010101?style=flat-square&logo=socket.io)](https://socket.io/)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind-CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Wooble Hackathon 2026](https://img.shields.io/badge/Wooble-Hackathon%202026-4F46E5?style=flat-square)](#)
 
 </div>
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [The Problem](#-the-problem)
-- [The Solution](#-the-solution)
-- [Live Demo Story](#-live-demo-story-90-seconds)
-- [Screenshots](#-screenshots)
-- [Core Features](#-core-features)
-- [Architecture](#-system-architecture)
-- [Socket Event Flow](#-socket-event-flow)
-- [Concurrency & Edge Cases](#-concurrency--edge-cases)
-- [Wait Time Intelligence](#-wait-time-intelligence-ema-algorithm)
-- [Tech Stack](#-tech-stack)
-- [Local Setup](#-local-setup)
-- [Roadmap](#-future-roadmap)
-- [Why QueueDoc Stands Out](#-why-queuedoc-stands-out)
+1. [Problem Statement](#1-problem-statement)
+2. [Solution Overview](#2-solution-overview)
+3. [Demo Walkthrough](#3-demo-walkthrough)
+4. [Core Features](#4-core-features)
+5. [System Architecture](#5-system-architecture)
+6. [Socket Event Contract](#6-socket-event-contract)
+7. [Concurrency and Edge Cases](#7-concurrency-and-edge-cases)
+8. [Wait Time Algorithm](#8-wait-time-algorithm)
+9. [Technology Stack](#9-technology-stack)
+10. [Local Development](#10-local-development)
+11. [Future Roadmap](#11-future-roadmap)
+12. [Judging Criteria Mapping](#12-judging-criteria-mapping)
 
 ---
 
-## 🚨 The Problem
+## 1. Problem Statement
 
-India has over **5.65 lakh registered clinics**. The overwhelming majority rely on a system invented in the 1800s: the paper token.
+The majority of outpatient clinics in India operate queue management entirely through paper tokens. This creates a set of well-documented operational failures:
 
-| Pain Point | Impact |
+| Problem | Operational Impact |
 |---|---|
-| 📄 **Paper tokens give zero information** | Patients have no idea if the wait is 5 minutes or 50 |
-| 🏃 **Patients leave and lose their spot** | Walk-away rates increase, clinics lose revenue |
-| 📣 **Doctor delays communicated by shouting** | No structured way to inform a waiting room of delays |
-| 🔁 **No-shows stall the entire queue** | A missing patient means the receptionist must manually intervene |
-| 👁️ **Receptionists have no audit trail** | Disputes over queue order cannot be resolved |
-| ⚡ **No concurrency protection** | Two receptionists on the same system can assign duplicate tokens |
+| Patients receive no wait time information | Walk-away rate increases as perceived uncertainty rises |
+| Doctor delays are communicated verbally | No structured mechanism to inform all waiting patients simultaneously |
+| Receptionists manually track queue order | High cognitive load, prone to error under peak load |
+| No-show patients stall the queue | Requires manual receptionist intervention for every unresponsive patient |
+| No audit trail exists | Queue order disputes cannot be resolved |
+| Concurrent receptionist actions cause data conflicts | Risk of duplicate token assignments under concurrent usage |
 
-> **This is not a minor inconvenience. The average Indian clinic patient waits 47 minutes, often with zero visibility into why or how long.**
+QueueDoc was built to address every one of these failure modes at the system level, not just the surface level.
 
 ---
 
-## ✅ The Solution
+## 2. Solution Overview
 
-**QueueDoc** is a full-stack, real-time queue management platform built for clinics of all sizes. It replaces the paper token with a live, intelligent, two-screen system.
+QueueDoc is a two-screen system connected through a real-time WebSocket layer backed by a MongoDB database.
 
 ```
-┌─────────────────────┐        ┌─────────────────────┐
-│  RECEPTION DASHBOARD│        │  PATIENT DISPLAY     │
-│                     │  ⚡    │                      │
-│  Add patients in    │ LIVE   │  Shows current       │
-│  under 10 seconds   │  SYNC  │  token + wait time   │
-│                     │        │                      │
-│  Call, Hold, Skip,  │ ────►  │  Voice announcement  │
-│  and manage delays  │        │  Health badge        │
-│  + Live Audit Trail │        │  Delay banner        │
-└─────────────────────┘        └─────────────────────┘
-           │                              │
-           └──────────────────────────────┘
-                    MongoDB + Socket.io
-                  (Single source of truth)
+                  RECEPTION DASHBOARD              PATIENT DISPLAY
+                  ─────────────────────            ─────────────────────
+                  Add patients (<10s)              Live current token
+                  Call, Hold, Skip                 Estimated wait time
+                  Broadcast delays                 Delay banner
+                  View audit trail                 Queue health indicator
+                         │                                │
+                         └──────────────┬────────────────┘
+                                        │
+                              MongoDB + Socket.io
+                           (Single source of truth)
 ```
 
-**Key principles:**
-- **Every screen is always live.** No polling. No refresh. Pure WebSocket events.
-- **Every action is atomic.** No race conditions, no duplicate tokens, ever.
-- **Every edge case is handled.** Not just the happy path.
+**Architectural principle:** No client ever pulls state. The server pushes a fresh snapshot of database state to every connected client after every mutation. All screens are guaranteed to display identical information derived from the same source.
 
 ---
 
-## 🎬 Live Demo Story (90 Seconds)
+## 3. Demo Walkthrough
 
-*This is the story of a real Monday morning at a busy clinic. Run this script with both `/reception` and `/display` open side-by-side.*
+The following script demonstrates the full system in approximately 90 seconds. Run it with both screens open side by side at `localhost:5173/reception` and `localhost:5173/display`.
 
----
+**Step 1 — Patient Registration**
+The receptionist types a patient name and submits. A token number is atomically assigned and the patient display updates within 100 milliseconds. The audit trail records the event with a timestamp.
 
-**⏱️ 0:00 — The Rush Begins**
-> A patient walks up to the reception desk. The receptionist types their name and hits Enter. In **under 2 seconds**, Token #1 is generated, the Patient Display updates live, and the Audit Trail records the event with a `+2s` timestamp badge — visible proof of speed.
+**Step 2 — Priority Override**
+An urgent patient arrives. The receptionist selects "Urgent" before adding them. The queue immediately re-sorts, placing the urgent patient at the top of the waiting list above all standard patients.
 
-**⏱️ 0:15 — The Emergency**
-> An elderly patient with chest pain enters urgently. The receptionist selects **Urgent** and adds them. Instantly, the queue re-orders — the urgent patient jumps to the front of the waiting list without touching anyone else's position.
+**Step 3 — Doctor Delay Broadcast**
+The doctor signals a 15-minute delay. The receptionist clicks "Broadcast +15m Delay". An alert banner appears on all connected patient displays simultaneously. Every estimated wait time increases by 15 minutes and the audit trail logs the event.
 
-**⏱️ 0:30 — The Doctor is Late**
-> The doctor is stuck in a procedure and signals 15 minutes late. The receptionist clicks **"Broadcast +15m Delay"**. An amber banner appears on *all* patient screens simultaneously: *"The doctor is delayed by 15 minutes."* Every wait time estimate updates mathematically in real-time. No shouting across the waiting room.
+**Step 4 — Smart Hold**
+Patient number 3 steps out temporarily. The receptionist clicks "Hold". As the queue shrinks to three people ahead, the server automatically reinstates the patient to active waiting status without any manual action required.
 
-**⏱️ 0:50 — The Wanderer**
-> Patient #3 says they're stepping out to the parking lot. The receptionist clicks **Hold**. They drop to a "paused" state. As the line shrinks to 3 people ahead of them, the server **automatically reinserts** them into the active queue — they don't lose their place.
+**Step 5 — Auto No-Show**
+The receptionist clicks "Call Next". The patient display announces the token number via the browser's Speech Synthesis API. Two minutes pass with no patient arriving. The server automatically transitions the patient to no-show status, logs the event, and the queue advances.
 
-**⏱️ 1:05 — The No-Show**
-> The receptionist clicks **Call Next**. The Patient Display screen **speaks out loud**: *"Token number 5, please proceed to the doctor."* 2 minutes pass. No one arrives. The system automatically marks them as a no-show, logs the event, and clears the slot — zero manual intervention needed.
-
-**⏱️ 1:25 — The Proof**
-> A judge glances at the Audit Trail sidebar. Every single action is logged with a time-diff badge (+2s, +14s, +1m). The entire chaotic morning is deterministic, traceable, and auditable.
+**Step 6 — Audit Verification**
+A reviewer examines the audit trail sidebar. Every action is logged in chronological order with a time delta between consecutive entries, providing verifiable proof of system speed and determinism.
 
 ---
 
-## 📸 Screenshots
+## 4. Core Features
 
-> **Running the app:** Start both servers (`node server/index.js` and `npm run dev`) and open the screens below.
+### 4.1 Atomic Token Generation
 
-| Screen | URL | Purpose |
-|--------|-----|---------|
-| 🖥️ Reception Dashboard | `http://localhost:5173/reception` | Staff-facing control panel |
-| 📺 Patient Display | `http://localhost:5173/display` | Waiting room screen |
+Paper-based and basic digital systems frequently produce duplicate token numbers when two users submit simultaneously. QueueDoc eliminates this by delegating sequencing entirely to MongoDB's atomic `$inc` operator on a dedicated Counter document.
 
-**Reception Dashboard** — Add patients, manage the queue, broadcast delays, and monitor the live audit trail from a single unified panel.
+```javascript
+// server/utils/getNextToken.js
+const counter = await Counter.findOneAndUpdate(
+  { _id: "tokenNumber" },
+  { $inc: { seq: 1 } },
+  { new: true, upsert: true }
+);
+return counter.seq;
+```
 
-**Patient Display** — A clean, large-format screen designed for a TV or monitor in the waiting room. Shows the current token being served, estimated wait time with a live countdown, queue health indicator, and delay banners.
+The database engine serializes these operations natively. No application-level mutex or lock is required to guarantee uniqueness.
 
 ---
 
-## ⚡ Core Features
+### 4.2 Real-Time WebSocket Synchronization
 
-### 1. 🔢 Atomic Token Generation
+Every database write is immediately followed by a server-initiated broadcast to all connected sockets. Clients never poll for state — they receive it pushed. This guarantees that the receptionist dashboard and the patient display are always in sync, regardless of the number of connected clients.
 
-| | |
+---
+
+### 4.3 Priority Queue Management
+
+Patients can be registered as Standard or Urgent. The server-side sort applies a compound ordering:
+
+1. Consultation status (in_consultation > waiting > holding)
+2. Priority (urgent before standard within the same status)
+3. Token number (ascending — first come, first served within same priority)
+
+This ordering is re-applied on every broadcast so the queue is always correctly ordered on all screens.
+
+---
+
+### 4.4 Smart Hold (Leave and Return)
+
+When a patient steps away temporarily, the receptionist can place them in a "holding" state. The patient is removed from the active waiting count but retained in the system. After each "Call Next" event, the server checks the number of active waiting patients. If the count drops to three or fewer, all holding patients are automatically reinstated to active waiting, ensuring they return to the queue at the correct time without losing their relative position.
+
+---
+
+### 4.5 Doctor Delay Broadcast
+
+A single button press increments the `global_delay_seconds` field in the `ClinicConfig` document. This value is included in every subsequent broadcast. All connected clients add this offset to their locally computed wait time estimates and render a visible delay notification banner. The mechanism works across any number of connected patient displays simultaneously.
+
+---
+
+### 4.6 Automated No-Show Handling
+
+When a patient is called, the server initiates a two-minute timeout stored in an in-process map keyed on the token's database ID. If the patient's status remains "called" when the timeout fires, the system automatically transitions them to "no_show", logs the event to the audit collection, and broadcasts the updated queue. If the patient does arrive before the timeout, the timeout is cleared when the receptionist clicks "Mark Done" or "Cancel".
+
+---
+
+### 4.7 Voice Announcement
+
+When a new token is called, the patient display triggers a browser-native `SpeechSynthesisUtterance` announcing the token number. This requires zero backend infrastructure and ensures patients are notified even if they are not actively watching the display screen.
+
+---
+
+### 4.8 Queue Health Indicator
+
+The patient display computes a real-time load classification based on total estimated queue wait time:
+
+| Classification | Threshold |
 |---|---|
-| **Problem** | Two receptionists clicking "Add Patient" simultaneously could generate duplicate token numbers |
-| **Solution** | A dedicated `Counter` collection in MongoDB uses `$inc` as a single atomic operation. The database engine itself enforces sequential uniqueness — no application-level locking needed. |
-| **Implementation** | `server/utils/getNextToken.js` — `Counter.findOneAndUpdate({ $inc: { seq: 1 } }, { upsert: true })` |
-| **Impact** | Zero duplicate tokens regardless of concurrent users or network conditions |
+| Light | Total wait under 15 minutes |
+| Moderate | Total wait between 15 and 45 minutes |
+| Heavy | Total wait exceeding 45 minutes |
+
+This gives patients an immediate macro-level understanding of clinic load without requiring them to interpret raw numbers.
 
 ---
 
-### 2. ⚡ Real-Time Socket.io Synchronization
+### 4.9 Live Audit Trail
 
-| | |
-|---|---|
-| **Problem** | Multi-screen systems using polling introduce stale state, race windows, and unnecessary server load |
-| **Solution** | Every database mutation immediately triggers a broadcast to all connected clients. No client ever initiates a state fetch — the server pushes truth. |
-| **Implementation** | After every write, `broadcastUpdate()` fetches fresh state from MongoDB and emits `queue:update` to all sockets |
-| **Impact** | Sub-100ms latency between receptionist action and patient display update |
+Every queue action is persisted to a dedicated `AuditLog` MongoDB collection and streamed to the receptionist dashboard via a dedicated `audit:update` socket event. The UI renders each entry with the time elapsed since the previous event, providing an at-a-glance record of system activity and verifiable proof of response speed.
 
 ---
 
-### 3. 🧠 EMA Wait Time Algorithm
-
-| | |
-|---|---|
-| **Problem** | Fixed `n × 5 minutes` estimates are wildly inaccurate and erode patient trust |
-| **Solution** | Exponential Moving Average tracking **real** consultation durations, weighted toward recent behavior |
-| **Implementation** | `server/waitTimeAlgo.js` — Full EMA with α=0.3, outlier rejection at 3× median |
-| **Impact** | Wait estimates that self-correct as the doctor's actual pace changes throughout the day |
-
-*(See full algorithm documentation in the [Wait Time Intelligence](#-wait-time-intelligence-ema-algorithm) section)*
-
----
-
-### 4. ⏸️ "Leave and Come Back" Smart Slot
-
-| | |
-|---|---|
-| **Problem** | Paper tokens permanently lose your place if you step away. Patients leave and don't come back. |
-| **Solution** | A "Hold" state that pauses a patient without removing them. The server auto-reinstates them as a top-3 priority. |
-| **Implementation** | `patient:hold` socket event sets status to `'holding'`. After every `callNext`, the server counts active waiting patients; if `≤ 3`, all holding patients auto-transition back to `'waiting'`. |
-| **Impact** | Walk-away rate reduction — patients can confidently step out, increasing trust in the system |
-
----
-
-### 5. 📢 Doctor Delay Broadcast
-
-| | |
-|---|---|
-| **Problem** | Doctor delays are communicated verbally, sporadically, and only to patients physically present |
-| **Solution** | A single button pushes a real-time delay message to every connected patient screen and recalculates all wait times |
-| **Implementation** | `config:addDelay` increments `global_delay_seconds` in `ClinicConfig`. The field is included in every `broadcastUpdate()`, so all clients add it to their displayed estimates. |
-| **Impact** | Transparent, clinic-wide communication in a single click. Reduces patient anxiety and front-desk complaints. |
-
----
-
-### 6. ⏰ Auto No-Show Timeout
-
-| | |
-|---|---|
-| **Problem** | A manually-managed no-show system requires the receptionist to watch the clock for every patient called |
-| **Solution** | An automated server-side timeout starts the moment a patient is called. If they don't respond within 2 minutes, they are automatically skipped. |
-| **Implementation** | `setTimeout` fires on every `callNext`. A DB re-check verifies the token is still in `'called'` state before auto-transitioning to `'no_show'`. Timeouts are stored in a map and cleared if the patient arrives. |
-| **Impact** | Queue never stalls due to no-shows. Zero receptionist intervention required. |
-
----
-
-### 7. 🔊 Voice Token Announcements
-
-| | |
-|---|---|
-| **Problem** | Waiting room patients are not always watching a screen — they may be on their phone, talking, or have visual impairments |
-| **Solution** | The Patient Display browser announces each new token out loud using the built-in Web Speech API |
-| **Implementation** | `useEffect` on `currentToken` triggers `new SpeechSynthesisUtterance(...)` when token status changes to `'called'` |
-| **Impact** | Accessibility improvement. Zero backend cost. Dramatically more noticeable for demo impact. |
-
----
-
-### 8. 📊 Live Queue Health Indicator
-
-| | |
-|---|---|
-| **Problem** | Patients and staff have no macro-level awareness of how overwhelmed the clinic is at any given time |
-| **Solution** | A dynamic badge computed from total queue wait time vs. thresholds |
-| **Implementation** | `< 15 min` → 🟢 Light Load, `15–45 min` → 🟡 Moderate Load, `> 45 min` → 🔴 Heavy Load |
-| **Impact** | Patients can self-regulate behavior (come back later vs. wait). Gives clinic operators an operational KPI at a glance. |
-
----
-
-### 9. 📜 Live Audit Trail with Time Diffs
-
-| | |
-|---|---|
-| **Problem** | In high-throughput queues, disputes arise about ordering, timing, and skipped patients |
-| **Solution** | Every queue action is logged to a dedicated `AuditLog` MongoDB collection and streamed live to the Receptionist dashboard with calculated time diffs |
-| **Implementation** | `logEvent()` persists to MongoDB and emits `audit:update` socket event. The UI calculates `diff_ms` between consecutive entries and renders `+Xs` pills. |
-| **Impact** | Full legal-grade auditability of queue events. Visually proves speed claims. |
-
----
-
-## 🏗️ System Architecture
+## 5. System Architecture
 
 ```mermaid
 graph TB
-    subgraph Client["Client Layer"]
-        R[🖥️ Reception Dashboard<br/>React + Tailwind]
-        D[📺 Patient Display<br/>React + Tailwind]
+    subgraph Client["Client Layer (React + Vite)"]
+        RD[Reception Dashboard]
+        PD[Patient Display]
     end
 
     subgraph Server["Server Layer (Node.js + Express)"]
-        SIO[⚡ Socket.io Engine]
-        API[🔌 REST API Layer]
-        WTA[🧠 Wait Time Algorithm<br/>EMA Module]
-        AUD[📜 Audit Logger]
+        SIO[Socket.io Engine]
+        API[Route Handlers]
+        WTA[EMA Wait Time Module]
+        AUD[Audit Logger]
     end
 
-    subgraph DB["Data Layer (MongoDB)"]
-        TK[(Token Collection)]
-        CC[(ClinicConfig Collection)]
-        CNT[(Counter Collection)]
-        AL[(AuditLog Collection)]
+    subgraph Database["Data Layer (MongoDB)"]
+        TK[(tokens)]
+        CC[(clinicconfigs)]
+        CNT[(counters)]
+        AL[(auditlogs)]
     end
 
-    R <-->|WebSocket| SIO
-    D <-->|WebSocket| SIO
+    RD <-->|WebSocket| SIO
+    PD <-->|WebSocket| SIO
     SIO --> API
     API --> WTA
     API --> AUD
@@ -259,278 +210,243 @@ graph TB
     API <--> CC
     API <--> CNT
     AUD --> AL
-    AL -->|audit:update| SIO
-
-    style Client fill:#e0f2fe,stroke:#0284c7
-    style Server fill:#f0fdf4,stroke:#16a34a
-    style DB fill:#fef9c3,stroke:#ca8a04
+    AL -->|audit:update broadcast| SIO
 ```
+
+**Data flow principle:** No route handler returns data directly to the requesting client. Instead, every mutation triggers a full-state broadcast to all clients. This eliminates optimistic UI inconsistencies and ensures every screen reflects the authoritative database state.
 
 ---
 
-## 🔄 Socket Event Flow
+## 6. Socket Event Contract
+
+### Client to Server
+
+| Event | Payload | Description |
+|---|---|---|
+| `patient:add` | `{ name, phone, priority }` | Register a new patient and assign an atomic token number |
+| `queue:callNext` | — | Advance the queue by calling the next highest-priority patient |
+| `patient:markDone` | `{ id }` | Complete a consultation and record duration for EMA calculation |
+| `patient:noShow` | `{ id }` | Manually mark a patient as no-show |
+| `patient:cancel` | `{ id }` | Remove a patient from the queue |
+| `patient:hold` | `{ id }` | Place a patient in holding state |
+| `patient:unhold` | `{ id }` | Manually reactivate a held patient |
+| `config:addDelay` | — | Add 15 minutes to the global doctor delay offset |
+
+All client-to-server events are wrapped in a 600ms server-side debounce guard per socket connection.
+
+### Server to Client
+
+| Event | Description |
+|---|---|
+| `queue:full_state` | Complete state snapshot, emitted immediately on connection or reconnection |
+| `queue:update` | Fresh state broadcast emitted after every queue mutation |
+| `audit:update` | Updated audit log array, emitted after every logged event |
+
+### Request Sequence
 
 ```mermaid
 sequenceDiagram
-    participant RC as 🖥️ Receptionist
-    participant SRV as ⚙️ Express Server
-    participant DB as 🗄️ MongoDB
-    participant IO as ⚡ Socket.io
-    participant PD as 📺 Patient Display
+    participant RC as Reception Client
+    participant SRV as Express Server
+    participant DB as MongoDB
+    participant IO as Socket.io
+    participant PD as Patient Display
 
     RC->>SRV: emit('patient:add', {name, priority})
-    SRV->>DB: Counter.findOneAndUpdate({$inc: {seq:1}})
-    DB-->>SRV: next_token_number = 7
+    SRV->>DB: Counter.findOneAndUpdate({$inc: {seq: 1}})
+    DB-->>SRV: token_number = 7
     SRV->>DB: Token.create({token_number: 7, status: 'waiting'})
-    SRV->>DB: AuditLog.create({event: 'add', token: 7})
+    SRV->>DB: AuditLog.create({event_type: 'add', token_number: 7})
     SRV-->>RC: emit('patient:added', {token_number: 7})
-    SRV->>DB: Token.find({clinic_day}) + sort + EMA calc
-    DB-->>SRV: Full state snapshot
+    SRV->>DB: Fetch full state + run EMA calculation
+    DB-->>SRV: State snapshot
     SRV->>IO: io.emit('queue:update', fullState)
-    IO-->>RC: Queue updates instantly
-    IO-->>PD: Display updates instantly
+    IO-->>RC: Reception dashboard updates
+    IO-->>PD: Patient display updates
 
-    Note over RC,PD: All screens now show identical state<br/>derived from single DB source of truth
-```
-
-### Complete Socket Event Contract
-
-| Event (Client → Server) | Description | Debounced |
-|---|---|---|
-| `patient:add` | Register a new patient with name, phone, priority | ✅ 600ms |
-| `queue:callNext` | Call the next highest-priority waiting patient | ✅ 600ms |
-| `patient:markDone` | Complete a consultation, record duration for EMA | ✅ 600ms |
-| `patient:noShow` | Manually mark a patient as no-show | ✅ 600ms |
-| `patient:cancel` | Remove a patient from the queue | ✅ 600ms |
-| `patient:hold` | Place a patient in the "stepped out" holding state | ✅ 600ms |
-| `patient:unhold` | Manually reactivate a held patient | ✅ 600ms |
-| `config:addDelay` | Broadcast a +15 minute doctor delay to all screens | ✅ 600ms |
-
-| Event (Server → Client) | Description |
-|---|---|
-| `queue:full_state` | Complete state snapshot sent on initial connection/reconnect |
-| `queue:update` | Incremental state broadcast after any mutation |
-| `audit:update` | Latest audit log array, broadcast after every logged event |
-
----
-
-## 🛡️ Concurrency & Edge Cases
-
-This is where QueueDoc demonstrates engineering maturity. We modeled the failure cases, not just the happy path.
-
-### Race Condition 1: Duplicate Token Numbers
-
-**Scenario:** Two receptionists add a patient at exactly the same millisecond.
-
-**Solution:** The `Counter` collection uses MongoDB's native `$inc` atomic operator. The database engine itself serializes these operations — it is impossible for two operations to receive the same sequence number.
-
-```js
-// server/utils/getNextToken.js
-const counter = await Counter.findOneAndUpdate(
-  { _id: "tokenNumber" },
-  { $inc: { seq: 1 } },    // Atomic — no application lock needed
-  { new: true, upsert: true }
-);
+    Note over RC,PD: Both screens now display identical state<br/>derived from a single database read
 ```
 
 ---
 
-### Race Condition 2: Two Receptionists Calling the Same Next Patient
+## 7. Concurrency and Edge Cases
 
-**Scenario:** Two receptionists on different browsers both click "Call Next" within milliseconds of each other.
+### 7.1 Duplicate Token Numbers
 
-**Solution Layer 1 — UI Debounce (Same Server):** A server-side `Set` blocks repeated socket events from the same socket for 600ms.
+**Scenario:** Two receptionists submit "Add Patient" simultaneously.
 
-**Solution Layer 2 — DB Atomic Lock (Multi-Server):** The critical `findOneAndUpdate` uses a compound query that only succeeds if the patient is still in `'waiting'` state at the moment of the write:
+**Resolution:** The `Counter` collection uses MongoDB's atomic `$inc` operation. The database engine serializes concurrent increment operations, making duplicate sequence numbers structurally impossible regardless of application concurrency.
 
-```js
-// server/index.js — DB-Level Atomic Status Lock
+---
+
+### 7.2 Duplicate Patient Calls
+
+**Scenario:** Two receptionists click "Call Next" within milliseconds of each other.
+
+**Resolution — Layer 1 (Same Server):** A server-side debounce using a JavaScript `Set` rejects duplicate events from the same socket connection within a 600ms window.
+
+**Resolution — Layer 2 (Any Scale):** The `callNext` handler uses a compound `findOneAndUpdate` that only succeeds if the target document is still in `'waiting'` status at write time:
+
+```javascript
 const updated = await Token.findOneAndUpdate(
-  { _id: nextToken._id, status: 'waiting' }, // Guard: only matches if still waiting
+  { _id: nextToken._id, status: 'waiting' },  // Guard condition
   { $set: { status: 'called', called_at: new Date() } },
   { new: true }
 );
 
-if (!updated) return; // Another process grabbed it — abort safely
+if (!updated) return; // Concurrent request already processed this token
 ```
 
-> **Known Limitation (Acknowledged Honestly):** The in-memory `Set` debounce does not replicate across multiple Node.js server instances behind a load balancer. The DB-level atomic lock handles the critical data-integrity case for any scale, but for complete protection in a horizontally-scaled environment, the debounce would need to be replaced with a Redis-backed distributed lock.
+If two requests reach the database simultaneously, exactly one will match the guard condition. The other will receive `null` and exit cleanly.
+
+> **Acknowledged Limitation:** The Layer 1 debounce uses in-process JavaScript memory. In a horizontally scaled deployment with multiple Node.js instances behind a load balancer, this guard will not replicate across processes. Layer 2's database-level atomic lock handles data integrity at any scale, but for complete double-click protection in a multi-instance environment, the in-memory `Set` should be replaced with a Redis-backed distributed lock.
 
 ---
 
-### Edge Case 3: Browser Crash / Network Interruption
+### 7.3 Browser Crash and Network Interruption
 
-**Scenario:** The receptionist's browser crashes mid-shift or the patient display goes offline.
+**Scenario:** The receptionist's browser crashes, or the patient display loses connectivity.
 
-**Solution:** On every Socket.io `'connection'` event (including reconnections), the server immediately emits `queue:full_state` — a complete snapshot of current queue state. The client UI is fully rebuilt from this. No data is ever stored in client memory alone.
-
----
-
-### Edge Case 4: No-Show Patient Stalls Queue
-
-**Scenario:** A patient is called but never arrives. The queue freezes.
-
-**Solution:** Every `callNext` starts a `setTimeout` stored in a server-side map. If the token is still in `'called'` state after 2 minutes, it is automatically transitioned to `'no_show'` and the queue event is logged.
-
-```js
-const timeoutId = setTimeout(async () => {
-  const checkToken = await Token.findById(nextToken._id);
-  if (checkToken && checkToken.status === 'called') {
-    await Token.findByIdAndUpdate(nextToken._id, { status: 'no_show' });
-    await logEvent('auto_skip', ...);
-    await broadcastUpdate(); // Queue clears automatically
-  }
-}, 120000); // 2 minutes
-timeouts[nextToken._id.toString()] = timeoutId;
-```
+**Resolution:** On every Socket.io `'connection'` event — including reconnections — the server immediately emits `queue:full_state`, a complete snapshot of the current queue rebuilt from MongoDB. The client UI is fully restored from this payload. No queue state is stored exclusively in client memory.
 
 ---
 
-## 🧠 Wait Time Intelligence: EMA Algorithm
+### 7.4 No-Show Patient Blocking Queue
 
-Most queue apps use: `wait = peopleAhead × 5 minutes`. This is fundamentally wrong.
+**Scenario:** A patient is called but does not arrive, blocking the queue indefinitely.
 
-**Why?** A doctor's pace changes throughout the day. Morning consultations run faster. Complex cases take longer. A fixed multiplier is immediately wrong after the first patient.
-
-**QueueDoc's approach:**
-
-```
-EMA(t) = α × duration(t) + (1 − α) × EMA(t-1)
-where α = 0.3
-```
-
-The EMA gives **30% weight to the most recent consultation** and **70% weight to historical pace** — smoothing sudden spikes while still adapting quickly to genuine pace changes.
-
-**Outlier Rejection:** Before feeding a consultation into the EMA, we check if it is `> 3× the current median`. If so, it is discarded (the doctor was likely called away, or had an emergency case). This prevents one 45-minute consultation from breaking everyone else's estimate.
-
-```
-Raw durations: [4m, 5m, 6m, 4m, 47m, 5m]
-After outlier rejection: [4m, 5m, 6m, 4m, 5m]
-EMA result: ~4.8 min/patient  ✅ Accurate
-Without rejection: ~11.8 min/patient  ❌ Misleading
-```
-
-**Fallback:** If fewer than 3 real consultations have been recorded, the algorithm falls back to the clinic's manually configured baseline average — so the system is useful from the very first patient.
+**Resolution:** A `setTimeout` is registered in a server-side map on every `callNext` event. After two minutes, the handler verifies the token is still in `'called'` status via a database read. If confirmed, it transitions the token to `'no_show'`, logs the automated action, and broadcasts the updated state. Arriving patients clear the timeout on `markDone` or `cancel`.
 
 ---
 
-## 🛠️ Tech Stack
+## 8. Wait Time Algorithm
 
-| Layer | Technology | Rationale |
-|---|---|---|
-| **Frontend Framework** | React 18 + Vite | Hot module replacement for rapid iteration; component model for reusable UI |
-| **Styling** | Tailwind CSS | Utility-first for pixel-perfect responsive layouts without custom CSS bloat |
-| **Animations** | Framer Motion | Production-grade spring physics for token number transitions |
-| **Backend Runtime** | Node.js 20 | Non-blocking I/O ideal for a high-throughput event-driven queue system |
-| **Web Framework** | Express.js 5 | Minimal, fast HTTP layer for REST routes and static file serving |
-| **Real-time Engine** | Socket.io 4 | Reliable WebSocket abstraction with auto-reconnect and fallback |
-| **Database** | MongoDB | Document model fits variable patient data; native atomic operators for concurrency |
-| **ODM** | Mongoose | Schema validation, `findOneAndUpdate` atomic helpers, connection management |
-| **Icons** | Lucide React | Consistent, lightweight SVG icon set |
-| **Voice API** | Web Speech API | Zero-dependency browser-native text-to-speech |
+### The Problem With Fixed Estimates
+
+Most queue systems compute estimated wait as `(people_ahead × fixed_minutes)`. This approach is incorrect in practice because a doctor's consultation pace changes throughout the day — early appointments run faster, complex cases extend longer. A fixed multiplier becomes inaccurate after the first deviation and never self-corrects.
+
+### Exponential Moving Average (EMA)
+
+QueueDoc tracks the real elapsed duration between when a patient is called and when the consultation is marked complete. These real durations feed an Exponential Moving Average with `α = 0.3`:
+
+```
+EMA(t) = α × duration(t) + (1 - α) × EMA(t - 1)
+       = 0.3 × latest_duration + 0.7 × previous_average
+```
+
+The 0.3 weighting gives meaningful influence to recent consultations while smoothing out transient spikes. The EMA self-corrects automatically as the doctor's pace evolves.
+
+### Outlier Rejection
+
+Before a duration enters the EMA, it is compared against the current median of recorded durations. If the incoming duration exceeds three times the median, it is discarded. This prevents edge cases — emergency interventions, equipment failures, patient complications — from distorting the estimate for all subsequent patients.
+
+**Example:**
+
+```
+Recorded durations:    [4m, 5m, 6m, 4m, 47m, 5m]
+After outlier check:   [4m, 5m, 6m, 4m,      5m]   (47m rejected, >3× median of 5m)
+EMA result:            ~4.8 min per patient
+Without rejection:     ~11.8 min per patient        (misleading)
+```
+
+### Fallback Behavior
+
+If fewer than three real consultations have been recorded, the algorithm falls back to a manually configurable baseline stored in the `ClinicConfig` collection. This ensures the system provides reasonable estimates from the very first patient of the day.
 
 ---
 
-## 🚀 Local Setup
+## 9. Technology Stack
+
+| Layer | Technology | Version | Selection Rationale |
+|---|---|---|---|
+| Frontend Framework | React | 18 | Component model, hooks API, strong ecosystem for stateful UI |
+| Build Tool | Vite | 5 | Sub-second hot module replacement during development |
+| Styling | Tailwind CSS | 3 | Utility-first approach enables consistent design without custom CSS files |
+| Animation | Framer Motion | 11 | Spring physics for token transitions without manual animation loops |
+| Backend Runtime | Node.js | 20 | Non-blocking I/O suited to a high-throughput event-driven system |
+| Web Framework | Express.js | 5 | Minimal HTTP layer for REST routing and static file serving |
+| Real-time Transport | Socket.io | 4 | Reliable WebSocket abstraction with automatic reconnection handling |
+| Database | MongoDB | 7 | Document model accommodates variable patient data; native atomic operators |
+| ODM | Mongoose | 8 | Schema validation, `findOneAndUpdate` helpers, connection lifecycle management |
+| Icons | Lucide React | — | Consistent SVG icon set with zero runtime overhead |
+| Voice | Web Speech API | Native | Browser-native text-to-speech, zero backend cost |
+
+---
+
+## 10. Local Development
 
 ### Prerequisites
-- Node.js ≥ 18
-- MongoDB running locally on port 27017
-- npm or yarn
 
-### Installation
+- Node.js version 18 or higher
+- MongoDB running locally on port 27017
+- npm
+
+### Setup
 
 ```bash
 # Clone the repository
 git clone https://github.com/srivallikatyayani/QueueDoc.git
 cd QueueDoc
 
-# Install dependencies
+# Install all dependencies
 npm install
 
-# Start the backend server
+# Terminal 1 — Start the backend server
 node server/index.js
-# → MongoDB connected successfully
-# → Server listening on port 3001
+# Expected output:
+# MongoDB connected successfully
+# Server listening on port 3001
 
-# In a new terminal, start the frontend dev server
+# Terminal 2 — Start the frontend development server
 npm run dev
-# → Local: http://localhost:5173
+# Expected output:
+# Local: http://localhost:5173
 ```
 
-### Open the App
+### Application URLs
 
 | Screen | URL |
-|--------|-----|
-| 🖥️ Reception Dashboard | http://localhost:5173/reception |
-| 📺 Patient Display | http://localhost:5173/display |
+|---|---|
+| Reception Dashboard | http://localhost:5173/reception |
+| Patient Display | http://localhost:5173/display |
 
-> **Tip:** Open both screens side-by-side and add a few patients on the reception screen. Watch the display update in real-time. Then click "Call Next" and listen for the voice announcement!
-
-### Environment
-The app connects to `mongodb://localhost:27017/queuedoc` by default. No additional configuration is needed for local development.
+The application connects to `mongodb://localhost:27017/queuedoc` by default. No environment configuration is required for local development. MongoDB will create the `queuedoc` database and all collections automatically on first use.
 
 ---
 
-## 🗺️ Future Roadmap
+## 11. Future Roadmap
 
 | Feature | Priority | Description |
 |---|---|---|
-| 📱 **WhatsApp / SMS Notifications** | High | Notify patients when they are 3rd in line via Twilio or WhatsApp Business API |
-| 👨‍⚕️ **Multi-Doctor Load Balancing** | High | Auto-assign tokens to the shortest doctor queue across multiple consultation rooms |
-| 📊 **Analytics Dashboard** | Medium | Track hourly patient volume, average wait times, and no-show rates by day of week |
-| ☁️ **Cloud Deployment** | Medium | One-click deployment to Railway / Render with persistent Atlas MongoDB cluster |
-| 🔑 **Staff Authentication** | Medium | JWT-based login for receptionists with role-based access control |
-| 📱 **Patient Mobile App** | Low | Self-service queue registration via QR code at clinic entrance |
-| 🔴 **Redis Distributed Lock** | Low | Replace in-memory debounce with Redis-backed lock for horizontal scaling |
-| 📅 **Appointment Booking** | Low | Pre-scheduled slots integrated alongside walk-in token queue |
+| SMS and WhatsApp Notifications | High | Notify patients when approaching their turn via Twilio or WhatsApp Business API |
+| Multi-Doctor Load Balancing | High | Automatically distribute incoming tokens across multiple consultation rooms based on shortest queue |
+| Analytics Dashboard | Medium | Historical reporting on patient volume, average wait times, and no-show rates by hour and day |
+| Cloud Deployment | Medium | Automated deployment to Railway or Render backed by MongoDB Atlas |
+| Staff Authentication | Medium | JWT-based login with role-based access control for receptionists and administrators |
+| Patient Self-Registration | Low | QR code at clinic entrance allowing patients to register themselves without receptionist input |
+| Distributed Lock | Low | Replace in-process debounce with Redis-backed distributed lock to support horizontal scaling |
+| Appointment Scheduling | Low | Pre-booked appointment slots integrated alongside walk-in token queue |
 
 ---
 
-## 🏆 Why QueueDoc Stands Out
+## 12. Judging Criteria Mapping
 
-### Mapped Directly to Wooble Judging Criteria
+The following table maps each Wooble 2026 judging criterion directly to the implementation decisions made in QueueDoc.
 
-| Criterion | Our Implementation | Evidence |
-|---|---|---|
-| **Real-world Problem (25%)** | Addresses the paper-token crisis in 76% of Indian clinics with a production-ready solution | Problem statement with documented statistics, 5 distinct pain points resolved |
-| **Live Sync Quality (25%)** | True WebSocket push architecture — zero polling, sub-100ms sync across all screens | Socket.io event contract with 8 server events, `broadcastUpdate()` after every mutation |
-| **Speed (< 10 sec add, 20%)** | Sub-2-second patient registration with Audit Trail time diffs as visual proof | `+Xs` time diff badges in the live Audit Trail on the Receptionist dashboard |
-| **Concurrency & Edge Cases (15%)** | 4 distinct concurrency scenarios handled: duplicate tokens, duplicate calls, network drops, no-shows | `getNextToken.js` atomic `$inc`, `findOneAndUpdate` status lock, reconnect handler, auto-timeout |
-| **Feature Completeness (15%)** | 9 advanced features built, including 7 that most teams won't have even one of | Feature table: Smart Slot, Delay Broadcast, Auto No-Show, Voice Call, Health Indicator, Audit Trail, Outlier-Rejecting EMA |
-
----
-
-### What Separates QueueDoc From a CRUD App
-
-```
-CRUD App:               QueueDoc:
-──────────────────────────────────────────────
-Add → Show             Add → Atomic counter → Broadcast → All screens sync
-Simple list            Priority-sorted queue with 5 status states
-Fixed wait time        EMA algorithm with outlier rejection
-Manual no-show         Server-side 2-minute auto-timeout
-No history             Persistent audit trail with time diffs
-Single event           Smart Slot auto-reinsert on queue state change
-No failure handling    Network reconnect → full state rebuild
-```
-
----
-
-## 🔚 Conclusion
-
-QueueDoc is not a hackathon prototype. It is a production-thinking approach to a problem that affects millions of patients across India every single day.
-
-Every feature was built to solve a specific, documented failure mode of existing systems. Every concurrency decision was made with awareness of both its capabilities and its limitations. Every piece of the UI was designed to communicate trust and transparency to patients who have historically been given none.
-
-The paper token had a good run. It is time to retire it.
+| Criterion | Weight | Implementation | Evidence |
+|---|---|---|---|
+| Real-world Problem | 25% | Addresses documented operational failures in paper-based clinic queue systems across six distinct dimensions | Problem statement with tabulated failure modes; each feature directly tied to a specific pain point |
+| Live Sync Quality | 25% | Server-push WebSocket architecture using Socket.io; zero client-side polling; all screens updated within 100ms of any mutation | `broadcastUpdate()` called after every database write; `queue:full_state` emitted on every reconnection |
+| Patient Add Speed | 20% | Streamlined form with optional fields; atomic token assignment in a single DB round-trip; client receives confirmation event immediately | Audit trail time delta badges provide on-screen, verifiable proof of sub-10-second registration |
+| Concurrency and Edge Cases | 15% | Four distinct concurrency scenarios addressed: duplicate token numbers, concurrent call-next, browser disconnection, no-show timeout | `$inc` atomic counter; `findOneAndUpdate` with status guard; reconnect full-state handler; automated timeout |
+| Feature Completeness | 15% | Nine advanced features implemented: atomic token generation, real-time sync, EMA algorithm, smart hold, delay broadcast, auto no-show, voice announcement, health indicator, audit trail | All features functional and demonstrated in the 90-second demo walkthrough |
 
 ---
 
 <div align="center">
 
-**Built with ❤️ for Wooble Hackathon 2026**
+**QueueDoc — Built for Wooble Hackathon 2026**
 
-[View Repository](https://github.com/srivallikatyayani/QueueDoc) · [Report Issue](https://github.com/srivallikatyayani/QueueDoc/issues)
+[Repository](https://github.com/srivallikatyayani/QueueDoc) · [Issues](https://github.com/srivallikatyayani/QueueDoc/issues)
 
 </div>
