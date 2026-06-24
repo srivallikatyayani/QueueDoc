@@ -238,7 +238,7 @@
      PAGE 1 — COVER
   ════════════════════════════════════════════════════════ */
   #p1 {
-    background: var(--ink);
+    background: radial-gradient(circle at 50% 80%, #115e59 0%, var(--ink) 60%);
     display: flex;
     flex-direction: column;
     padding: 0;
@@ -264,10 +264,10 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(to bottom, transparent 40%, var(--ink) 100%);
+    background: linear-gradient(to bottom, transparent 30%, var(--ink) 100%);
   }
 
-  #p1 .cover-body { padding: 0 36px; flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 100px; }
+  #p1 .cover-body { padding: 40px 36px 0; flex: 1; display: flex; flex-direction: column; justify-content: flex-start; }
   #p1 .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--teal-l); margin-bottom: 10px; }
   #p1 .display { color: white; font-size: 44px; margin-bottom: 10px; }
   #p1 .tagline { font-size: 14px; color: rgba(255,255,255,0.6); max-width: 460px; line-height: 1.6; margin-bottom: 28px; }
