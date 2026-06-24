@@ -3,7 +3,7 @@ import Receptionist from './pages/Receptionist';
 import Display from './pages/Display';
 import { io } from 'socket.io-client';
 
-export const socket = io(import.meta.env.VITE_SERVER_URL || 'http://localhost:3001');
+export const socket = io(import.meta.env.PROD ? '/' : (import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'));
 
 function App() {
   return (

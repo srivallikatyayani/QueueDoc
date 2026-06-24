@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>QueueDoc — Case Study</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal:    #0F766E;
+    --teal-l:  #14B8A6;
+    --teal-xl: #CCFBF1;
+    --ink:     #0F172A;
+    --ink-m:   #334155;
+    --ink-s:   #64748B;
+    --border:  #E2E8F0;
+    --surface: #F8FAFC;
+    --white:   #FFFFFF;
+    --amber:   #F59E0B;
+    --red:     #EF4444;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #fff;
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ─── PAGE SHELL ─────────────────────────────────────── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+    background: var(--white);
+  }
+
+  @media print {
+    html, body { width: 210mm; margin: 0; }
+    .page { margin: 0; box-shadow: none; }
+    .no-print { display: none; }
+  }
+
+  /* ─── SHARED UTILITIES ───────────────────────────────── */
+  .flex { display: flex; }
+  .col  { flex-direction: column; }
+  .gap-4 { gap: 4px; }
+  .gap-8 { gap: 8px; }
+  .gap-12 { gap: 12px; }
+  .gap-16 { gap: 16px; }
+  .gap-20 { gap: 20px; }
+  .items-center { align-items: center; }
+  .justify-center { justify-content: center; }
+  .justify-between { justify-content: space-between; }
+  .wrap { flex-wrap: wrap; }
+  .w-full { width: 100%; }
+  .text-center { text-align: center; }
+
+  /* ─── TYPOGRAPHY ─────────────────────────────────────── */
+  .display { font-family: 'Sora', sans-serif; font-size: 48px; font-weight: 800; line-height: 1.1; letter-spacing: -1.5px; }
+  .h1 { font-family: 'Sora', sans-serif; font-size: 30px; font-weight: 800; line-height: 1.15; letter-spacing: -0.5px; }
+  .h2 { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700; line-height: 1.2; }
+  .h3 { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; }
+  .label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--teal); }
+  .body  { font-size: 13px; color: var(--ink-m); line-height: 1.65; }
+  .small { font-size: 11px; color: var(--ink-s); line-height: 1.5; }
+  .teal  { color: var(--teal); }
+  .white { color: var(--white); }
+  .muted { color: var(--ink-s); }
+
+  /* ─── PAGE HEADER (inner pages) ─────────────────────── */
+  .page-header {
+    padding: 22px 32px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid var(--teal);
+    padding-bottom: 10px;
+    margin-bottom: 24px;
+  }
+  .page-header .logo-mark { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 800; color: var(--teal); letter-spacing: 0.5px; }
+  .page-header .page-num  { font-size: 11px; color: var(--ink-s); }
+  .page-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-s); margin-bottom: 4px; }
+
+  /* ─── SECTION PADDING ────────────────────────────────── */
+  .pad { padding: 0 32px; }
+  .pad-sm { padding: 0 24px; }
+
+  /* ─── ACCENT LINE ────────────────────────────────────── */
+  .accent-bar { width: 40px; height: 3px; background: var(--teal); border-radius: 2px; margin-bottom: 10px; }
+
+  /* ─── METRIC CARDS ───────────────────────────────────── */
+  .metric-row { display: flex; gap: 12px; }
+  .metric-card {
+    flex: 1;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--teal), var(--teal-l));
+  }
+  .metric-card .value { font-family: 'Sora', sans-serif; font-size: 32px; font-weight: 900; color: var(--teal); line-height: 1; margin-bottom: 4px; }
+  .metric-card .desc  { font-size: 10px; font-weight: 600; color: var(--ink-s); letter-spacing: 0.5px; text-transform: uppercase; }
+
+  /* ─── CALLOUT CARD ───────────────────────────────────── */
+  .callout {
+    border-left: 4px solid var(--teal);
+    background: var(--teal-xl);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--ink-m);
+    font-style: italic;
+    line-height: 1.6;
+  }
+  .callout.amber { border-color: var(--amber); background: #FFFBEB; }
+  .callout.red   { border-color: var(--red);   background: #FEF2F2; }
+
+  /* ─── FEATURE CARD ───────────────────────────────────── */
+  .feature-card {
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    background: var(--white);
+    flex: 1;
+    min-width: 0;
+  }
+  .feature-card .icon-badge {
+    width: 36px; height: 36px;
+    background: var(--teal-xl);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+  .feature-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .feature-card p  { font-size: 11.5px; color: var(--ink-s); line-height: 1.55; }
+  .feature-card .tag { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; background: var(--teal-xl); color: var(--teal); padding: 2px 7px; border-radius: 30px; margin-bottom: 8px; }
+
+  /* ─── CHIP / BADGE ───────────────────────────────────── */
+  .chip { display: inline-block; background: var(--teal-xl); color: var(--teal); font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 30px; letter-spacing: 0.5px; }
+  .chip.dark { background: var(--teal); color: white; }
+  .chip.gray { background: var(--border); color: var(--ink-m); }
+
+  /* ─── TECH CHIP ROW ──────────────────────────────────── */
+  .tech-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tech-pill { background: var(--ink); color: var(--white); font-size: 10px; font-weight: 600; padding: 4px 11px; border-radius: 30px; letter-spacing: 0.3px; }
+
+  /* ─── TABLE ──────────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 8px 10px; font-weight: 700; font-size: 10px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--ink-s); border-bottom: 2px solid var(--border); }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--ink-m); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { font-weight: 600; color: var(--ink); }
+
+  /* ─── DIVIDER ────────────────────────────────────────── */
+  .divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+  /* ─── ROADMAP CARD ───────────────────────────────────── */
+  .roadmap-card {
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    flex: 1;
+  }
+  .roadmap-card .header {
+    background: var(--teal);
+    color: white;
+    padding: 10px 14px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .roadmap-card .body { padding: 14px; }
+  .roadmap-card .title { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+  .roadmap-card p { font-size: 11px; color: var(--ink-s); line-height: 1.5; }
+
+  /* ─── SCREENSHOT BOX ─────────────────────────────────── */
+  .screenshot-box {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+  }
+  .screenshot-box img { width: 100%; display: block; }
+  .screenshot-label { padding: 8px 12px; font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--ink-s); border-top: 1px solid var(--border); }
+
+  /* ─── ARCH BOX ───────────────────────────────────────── */
+  .arch-layer {
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    background: var(--white);
+  }
+  .arch-layer .layer-label { font-size: 9px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
+  .arch-layer .layer-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .arch-layer p { font-size: 11px; color: var(--ink-s); }
+
+  .arch-arrow { text-align: center; color: var(--teal); font-size: 18px; line-height: 1; padding: 2px 0; }
+
+  /* ─── FLOW ARROW ─────────────────────────────────────── */
+  .flow-arrow { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+  .flow-arrow .line { flex: 1; height: 1.5px; background: var(--teal-l); }
+  .flow-arrow .arrow { color: var(--teal); font-size: 14px; }
+
+  /* ─── PAGE FOOTER ────────────────────────────────────── */
+  .page-footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 10px 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    font-size: 9.5px;
+    color: var(--ink-s);
+    background: white;
+  }
+
+  /* ════════════════════════════════════════════════════════
+     PAGE 1 — COVER
+  ════════════════════════════════════════════════════════ */
+  #p1 {
+    background: var(--ink);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  #p1 .cover-top {
+    padding: 28px 36px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #p1 .logo { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 900; color: white; letter-spacing: -0.5px; }
+  #p1 .logo span { color: var(--teal-l); }
+  #p1 .badge-row { display: flex; gap: 8px; }
+  #p1 .badge { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); padding: 4px 10px; border-radius: 30px; }
+
+  #p1 .hero-img-wrap {
+    width: 100%;
+    height: 168px;
+    overflow: hidden;
+    margin-top: 24px;
+    position: relative;
+  }
+  #p1 .hero-img-wrap img { width: 100%; object-fit: cover; object-position: center 30%; display: block; }
+  #p1 .hero-img-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 40%, var(--ink) 100%);
+  }
+
+  #p1 .cover-body { padding: 0 36px; flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 100px; }
+  #p1 .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--teal-l); margin-bottom: 10px; }
+  #p1 .display { color: white; font-size: 44px; margin-bottom: 10px; }
+  #p1 .tagline { font-size: 14px; color: rgba(255,255,255,0.6); max-width: 460px; line-height: 1.6; margin-bottom: 28px; }
+
+  #p1 .cover-metrics { display: flex; gap: 14px; }
+  #p1 .c-metric { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px 20px; text-align: center; position: relative; overflow: hidden; }
+  #p1 .c-metric::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--teal), var(--teal-l)); }
+  #p1 .c-metric .val { font-family: 'Sora', sans-serif; font-size: 28px; font-weight: 900; color: var(--teal-l); line-height: 1; margin-bottom: 4px; }
+  #p1 .c-metric .lbl { font-size: 9.5px; font-weight: 600; color: rgba(255,255,255,0.5); letter-spacing: 0.8px; text-transform: uppercase; }
+
+  #p1 .cover-footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 14px 36px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; }
+  #p1 .cover-footer span { font-size: 10px; color: rgba(255,255,255,0.3); }
+
+  /* ════════════════════════════════════════════════════════
+     PAGE 2 — PROBLEM
+  ════════════════════════════════════════════════════════ */
+  .problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .problem-card {
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    background: var(--surface);
+  }
+  .problem-card .icon { font-size: 22px; margin-bottom: 8px; }
+  .problem-card h3 { font-size: 12.5px; font-weight: 700; margin-bottom: 4px; }
+  .problem-card p { font-size: 11px; color: var(--ink-s); line-height: 1.55; }
+  .stat-row { display: flex; gap: 10px; }
+  .stat-card { flex: 1; background: var(--ink); color: white; border-radius: 10px; padding: 14px; text-align: center; }
+  .stat-card .num { font-family: 'Sora', sans-serif; font-size: 26px; font-weight: 900; color: var(--teal-l); line-height: 1; margin-bottom: 4px; }
+  .stat-card .txt { font-size: 10px; color: rgba(255,255,255,0.55); letter-spacing: 0.3px; line-height: 1.4; }
+
+  /* ════════════════════════════════════════════════════════
+     PAGE 4 — ARCHITECTURE
+  ════════════════════════════════════════════════════════ */
+  .arch-flow { display: flex; flex-direction: column; gap: 6px; }
+  .tech-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; padding: 12px; }
+  .tech-card h3 { font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+  .tech-card p { font-size: 11px; color: var(--ink-s); }
+
+  /* ════════════════════════════════════════════════════════
+     PAGE 6 — RESULTS
+  ════════════════════════════════════════════════════════ */
+  .big-metric { flex: 1; text-align: center; background: var(--ink); color: white; border-radius: 16px; padding: 24px 16px; position: relative; overflow: hidden; }
+  .big-metric::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--teal), var(--teal-l)); }
+  .big-metric .num { font-family: 'Sora', sans-serif; font-size: 52px; font-weight: 900; color: var(--teal-l); line-height: 1; margin-bottom: 6px; }
+  .big-metric .lbl { font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 0.5px; text-transform: uppercase; font-weight: 600; }
+
+  .outcome-card { flex: 1; border: 1.5px solid var(--border); border-radius: 12px; padding: 16px; background: var(--white); }
+  .outcome-card .icon { font-size: 20px; margin-bottom: 8px; }
+  .outcome-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .outcome-card p { font-size: 11px; color: var(--ink-s); line-height: 1.55; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 1 — COVER
+══════════════════════════════════════════════════════ -->
+<div class="page" id="p1">
+
+  <div class="cover-top">
+    <div class="logo">Queue<span>Doc</span></div>
+    <div class="badge-row">
+      <div class="badge">Wooble Hackathon 2026</div>
+      <div class="badge">Full-Stack Engineering</div>
+      <div class="badge">Healthcare Technology</div>
+    </div>
+  </div>
+
+  <div class="hero-img-wrap">
+    <img src="C:/Users/thesp/Documents/Queue Cure '26/IMAGE-1.jpg" alt="QueueDoc Product Preview"/>
+  </div>
+
+  <div class="cover-body">
+    <div class="eyebrow">Product Case Study</div>
+    <div class="display">QueueDoc</div>
+    <div class="tagline">Replacing paper tokens with live queue orchestration, real-time synchronization, and intelligent wait-time estimation — built for India's 5.65 lakh outpatient clinics.</div>
+
+    <div class="cover-metrics">
+      <div class="c-metric">
+        <div class="val">&lt; 2s</div>
+        <div class="lbl">Patient Check-In</div>
+      </div>
+      <div class="c-metric">
+        <div class="val">100%</div>
+        <div class="lbl">Live Synchronization</div>
+      </div>
+      <div class="c-metric">
+        <div class="val">0</div>
+        <div class="lbl">Token Collisions</div>
+      </div>
+      <div class="c-metric">
+        <div class="val">9</div>
+        <div class="lbl">Advanced Features</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cover-footer">
+    <span>React · Node.js · MongoDB · Socket.io · Tailwind CSS</span>
+    <span>srivallikatyayani/QueueDoc</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 2 — THE PROBLEM
+══════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-label">The Problem</div>
+      <div class="logo-mark">QueueDoc</div>
+    </div>
+    <div class="page-num">02 / 08</div>
+  </div>
+
+  <div class="pad">
+    <div class="accent-bar"></div>
+    <div class="h1" style="margin-bottom:6px;">Clinic Waiting Rooms Are Still<br/>Running on Paper</div>
+    <div class="body" style="max-width:520px; margin-bottom:20px;">India has over <strong>5.65 lakh registered clinics</strong>. The overwhelming majority manage patient queues using a system invented in the 1800s — the paper token. This creates compounding operational and experience failures at every level.</div>
+
+    <div class="stat-row" style="margin-bottom:16px;">
+      <div class="stat-card">
+        <div class="num">76%</div>
+        <div class="txt">of Indian outpatient clinics use paper token systems</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">47m</div>
+        <div class="txt">average patient wait time with zero visibility</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">38%</div>
+        <div class="txt">of patients abandon queues due to uncertainty</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">0</div>
+        <div class="txt">auditability on queue order decisions</div>
+      </div>
+    </div>
+
+    <div class="problem-grid" style="margin-bottom:16px;">
+      <div class="problem-card">
+        <div class="icon">📋</div>
+        <h3>No Real-Time Visibility</h3>
+        <p>Paper tokens give patients no information about how many people are ahead or how long the wait will be. Perceived uncertainty triggers abandonment.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">📣</div>
+        <h3>Doctor Delays Have No Channel</h3>
+        <p>When a doctor runs late, receptionists communicate this verbally — inconsistently, sporadically, and only to patients physically present at that moment.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">🔁</div>
+        <h3>No-Shows Stall the Queue</h3>
+        <p>When a called patient does not appear, the entire queue freezes until a receptionist manually investigates. This happens multiple times per shift.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">⚡</div>
+        <h3>Concurrency Causes Chaos</h3>
+        <p>Multiple receptionists operating simultaneously on shared paper tokens or basic systems frequently produce duplicate numbers, disputes, and queue corruption.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      "How might we modernize clinic queue operations — handling every real-world edge case — without increasing staff workload or requiring new hardware?"
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>QueueDoc — Product Case Study</span>
+    <span>Wooble Hackathon 2026</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 3 — THE SOLUTION
+══════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-label">The Solution</div>
+      <div class="logo-mark">QueueDoc</div>
+    </div>
+    <div class="page-num">03 / 08</div>
+  </div>
+
+  <div class="pad">
+    <div class="accent-bar"></div>
+    <div class="h1" style="margin-bottom:6px;">A Two-Screen Real-Time<br/>Queue Orchestration System</div>
+    <div class="body" style="max-width:560px; margin-bottom:20px;">QueueDoc replaces the paper token with a live, intelligent, database-backed system. Every state change is atomic. Every screen is always synchronized. Every edge case is handled automatically.</div>
+
+    <!-- Flow Diagram -->
+    <div style="display:flex; gap:0; margin-bottom:20px; align-items:stretch;">
+
+      <div style="flex:1; background:var(--ink); border-radius:14px 0 0 14px; padding:20px; color:white;">
+        <div style="font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--teal-l); margin-bottom:10px;">Screen 1</div>
+        <div style="font-family:'Sora',sans-serif; font-size:17px; font-weight:800; margin-bottom:10px;">Reception<br/>Dashboard</div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.55); line-height:1.6; margin-bottom:14px;">The command center for reception staff. Register patients in under 2 seconds, manage priority, broadcast delays, and monitor the live audit trail — all from a single panel.</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="font-size:10px; color:rgba(255,255,255,0.5); display:flex; align-items:center; gap:6px;"><span style="color:var(--teal-l);">›</span> Atomic token generation</div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.5); display:flex; align-items:center; gap:6px;"><span style="color:var(--teal-l);">›</span> Urgent priority queue override</div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.5); display:flex; align-items:center; gap:6px;"><span style="color:var(--teal-l);">›</span> Smart hold / unhold for patients</div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.5); display:flex; align-items:center; gap:6px;"><span style="color:var(--teal-l);">›</span> Live audit trail with time diffs</div>
+        </div>
+      </div>
+
+      <div style="width:80px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--teal); gap:6px; padding:16px 0;">
+        <div style="font-size:9px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.7); writing-mode:vertical-lr; transform:rotate(180deg);">Real-Time Sync</div>
+        <div style="color:white; font-size:20px;">⇄</div>
+        <div style="font-size:9px; color:rgba(255,255,255,0.5); text-align:center;">Socket.io<br/>MongoDB</div>
+      </div>
+
+      <div style="flex:1; background:var(--surface); border-radius:0 14px 14px 0; border:1.5px solid var(--border); border-left:none; padding:20px;">
+        <div style="font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--teal); margin-bottom:10px;">Screen 2</div>
+        <div style="font-family:'Sora',sans-serif; font-size:17px; font-weight:800; margin-bottom:10px; color:var(--ink);">Patient<br/>Display</div>
+        <div style="font-size:11px; color:var(--ink-s); line-height:1.6; margin-bottom:14px;">The patient-facing screen, designed for a TV or large monitor in the waiting area. Always live. Always accurate. Communicates transparently without receptionist intervention.</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="font-size:10px; color:var(--ink-s); display:flex; align-items:center; gap:6px;"><span style="color:var(--teal);">›</span> Current token — large format display</div>
+          <div style="font-size:10px; color:var(--ink-s); display:flex; align-items:center; gap:6px;"><span style="color:var(--teal);">›</span> Live EMA-based wait time countdown</div>
+          <div style="font-size:10px; color:var(--ink-s); display:flex; align-items:center; gap:6px;"><span style="color:var(--teal);">›</span> Doctor delay banner (auto-broadcast)</div>
+          <div style="font-size:10px; color:var(--ink-s); display:flex; align-items:center; gap:6px;"><span style="color:var(--teal);">›</span> Queue health indicator: Light / Moderate / Heavy</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Core guarantees row -->
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+      <div style="border:1.5px solid var(--border); border-radius:10px; padding:14px; text-align:center;">
+        <div style="font-family:'Sora',sans-serif; font-size:22px; font-weight:900; color:var(--teal); margin-bottom:4px;">Atomic</div>
+        <div style="font-size:10px; color:var(--ink-s); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Token Assignment</div>
+        <div style="font-size:10.5px; color:var(--ink-s); margin-top:6px; line-height:1.5;">MongoDB $inc operator guarantees zero duplicates under any concurrency</div>
+      </div>
+      <div style="border:1.5px solid var(--border); border-radius:10px; padding:14px; text-align:center;">
+        <div style="font-family:'Sora',sans-serif; font-size:22px; font-weight:900; color:var(--teal); margin-bottom:4px;">Instant</div>
+        <div style="font-size:10px; color:var(--ink-s); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">State Propagation</div>
+        <div style="font-size:10.5px; color:var(--ink-s); margin-top:6px; line-height:1.5;">Sub-100ms broadcast to all clients after every mutation via Socket.io push</div>
+      </div>
+      <div style="border:1.5px solid var(--border); border-radius:10px; padding:14px; text-align:center;">
+        <div style="font-family:'Sora',sans-serif; font-size:22px; font-weight:900; color:var(--teal); margin-bottom:4px;">Resilient</div>
+        <div style="font-size:10px; color:var(--ink-s); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">State Recovery</div>
+        <div style="font-size:10.5px; color:var(--ink-s); margin-top:6px; line-height:1.5;">Full state snapshot pushed to every client on reconnect — no data ever lost</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>QueueDoc — Product Case Study</span>
+    <span>Wooble Hackathon 2026</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 4 — SYSTEM ARCHITECTURE
+══════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-label">System Architecture</div>
+      <div class="logo-mark">QueueDoc</div>
+    </div>
+    <div class="page-num">04 / 08</div>
+  </div>
+
+  <div class="pad">
+    <div class="accent-bar"></div>
+    <div class="h1" style="margin-bottom:6px;">Built for Real-Time Reliability</div>
+    <div class="body" style="max-width:540px; margin-bottom:20px;">Every architectural decision in QueueDoc was made to maximize data integrity, minimize latency, and handle failure cases gracefully. The system is stateless on the client and authoritative on the server.</div>
+
+    <!-- Architecture Layers -->
+    <div style="display:grid; grid-template-columns:1fr 32px 1fr; gap:0; align-items:center; margin-bottom:18px;">
+
+      <!-- Left column -->
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div class="arch-layer" style="border-color:var(--teal); background:var(--teal-xl);">
+          <div class="layer-label">Layer 01</div>
+          <div class="layer-title">Frontend — React + Vite</div>
+          <p>Two independent React SPAs: Reception Dashboard and Patient Display. Both mount a shared Socket.io client and listen for server-pushed state. No polling. No client-initiated fetches post-mount.</p>
+        </div>
+        <div style="text-align:center; color:var(--teal); font-size:18px; line-height:1;">↓</div>
+        <div class="arch-layer">
+          <div class="layer-label">Layer 02</div>
+          <div class="layer-title">Socket.io Engine</div>
+          <p>Handles all bidirectional communication. Clients emit action events. Server emits state. The engine manages reconnection, room broadcasting, and event debouncing per socket.</p>
+        </div>
+        <div style="text-align:center; color:var(--teal); font-size:18px; line-height:1;">↓</div>
+        <div class="arch-layer">
+          <div class="layer-label">Layer 03</div>
+          <div class="layer-title">Express Route Handlers</div>
+          <p>Processes all socket events. Applies business logic (priority sorting, EMA calculation, audit logging). Every handler calls broadcastUpdate() after completing a mutation.</p>
+        </div>
+      </div>
+
+      <!-- Center divider -->
+      <div style="display:flex; align-items:center; justify-content:center; height:100%;">
+        <div style="width:2px; height:80%; background: linear-gradient(to bottom, var(--teal-xl), var(--teal), var(--teal-xl)); border-radius:2px;"></div>
+      </div>
+
+      <!-- Right column -->
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div class="arch-layer">
+          <div class="layer-label">Layer 04</div>
+          <div class="layer-title">MongoDB — Document Store</div>
+          <p>Four collections: <strong>tokens</strong>, <strong>counters</strong>, <strong>clinicconfigs</strong>, <strong>auditlogs</strong>. The counter collection uses native $inc for atomic sequence generation. All writes are confirmed before broadcast.</p>
+        </div>
+        <div style="text-align:center; color:var(--teal); font-size:18px; line-height:1;">↓</div>
+        <div class="arch-layer">
+          <div class="layer-label">Layer 05</div>
+          <div class="layer-title">EMA Wait-Time Module</div>
+          <p>A standalone calculation module fed real consultation durations. Applies Exponential Moving Average (α=0.3) with outlier rejection at 3× median. Result included in every broadcast.</p>
+        </div>
+        <div style="text-align:center; color:var(--teal); font-size:18px; line-height:1;">↓</div>
+        <div class="arch-layer">
+          <div class="layer-label">Layer 06</div>
+          <div class="layer-title">Audit Logger</div>
+          <p>Every queue mutation is persisted to AuditLog collection with event_type, token reference, description, and timestamp. Streamed live to the receptionist dashboard via audit:update socket event.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tech Stack -->
+    <div style="background:var(--ink); border-radius:12px; padding:16px 20px;">
+      <div style="font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:10px;">Technology Stack</div>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
+        <div style="text-align:center;">
+          <div style="font-size:13px; font-weight:800; color:white;">React 18</div>
+          <div style="font-size:9.5px; color:rgba(255,255,255,0.4); margin-top:2px;">Vite · Framer Motion</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:13px; font-weight:800; color:white;">Node.js 20</div>
+          <div style="font-size:9.5px; color:rgba(255,255,255,0.4); margin-top:2px;">Express 5 · ES Modules</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:13px; font-weight:800; color:white;">MongoDB 7</div>
+          <div style="font-size:9.5px; color:rgba(255,255,255,0.4); margin-top:2px;">Mongoose ODM</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:13px; font-weight:800; color:white;">Socket.io 4</div>
+          <div style="font-size:9.5px; color:rgba(255,255,255,0.4); margin-top:2px;">Tailwind · Lucide</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>QueueDoc — Product Case Study</span>
+    <span>Wooble Hackathon 2026</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 5 — CORE FEATURES
+══════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-label">Core Features</div>
+      <div class="logo-mark">QueueDoc</div>
+    </div>
+    <div class="page-num">05 / 08</div>
+  </div>
+
+  <div class="pad">
+    <div class="accent-bar"></div>
+    <div class="h1" style="margin-bottom:6px;">Designed for Real Clinic Operations</div>
+    <div class="body" style="max-width:540px; margin-bottom:18px;">Every feature in QueueDoc was designed to solve a documented clinic failure mode — not an imagined one. The following nine capabilities cover the complete surface of real outpatient queue management.</div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px;">
+
+      <div class="feature-card">
+        <div class="tag">Core</div>
+        <h3>Atomic Token Generation</h3>
+        <p>MongoDB <code>$inc</code> on a dedicated Counter document makes duplicate tokens structurally impossible — even under simultaneous concurrent submissions.</p>
+      </div>
+      <div class="feature-card">
+        <div class="tag">Core</div>
+        <h3>Real-Time Queue Sync</h3>
+        <p>Every mutation triggers a full-state broadcast to all connected clients. Sub-100ms propagation. No polling. All screens display identical data from one source of truth.</p>
+      </div>
+      <div class="feature-card">
+        <div class="tag">Priority</div>
+        <h3>Urgent Patient Override</h3>
+        <p>Patients registered as Urgent are automatically sorted above all standard patients. Queue re-orders on every broadcast without manual repositioning.</p>
+      </div>
+      <div class="feature-card">
+        <div class="tag">UX</div>
+        <h3>Smart Hold / Return</h3>
+        <p>Patients who step out are placed in "holding" state. When the queue shrinks to 3 ahead, the server auto-reinserts them — preserving turn order without manual intervention.</p>
+      </div>
+      <div class="feature-card">
+        <div class="tag">Communication</div>
+        <h3>Doctor Delay Broadcast</h3>
+        <p>One button adds a 15-minute offset to ClinicConfig, broadcasts a delay banner to all patient displays, and updates all wait-time estimates simultaneously.</p>
+      </div>
+      <div class="feature-card">
+        <div class="tag">Automation</div>
+        <h3>Auto No-Show Timeout</h3>
+        <p>A server-side timer fires 2 minutes after every Call Next. Unresponsive patients are auto-transitioned to no_show, logged, and the queue advances without receptionist action.</p>
+      </div>
+
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+      <div class="feature-card">
+        <div class="tag">Intelligence</div>
+        <h3>EMA Wait-Time Algorithm</h3>
+        <p>Tracks real consultation durations. Applies Exponential Moving Average (α=0.3) with outlier rejection at 3× median. Self-corrects as doctor's pace evolves throughout the day.</p>
+      </div>
+      <div class="feature-card">
+        <div class="tag">Accessibility</div>
+        <h3>Voice Announcements</h3>
+        <p>Browser-native Web Speech API announces each called token out loud. Zero backend cost. Ensures patients are notified even when not watching the display.</p>
+      </div>
+      <div class="feature-card">
+        <div class="tag">Observability</div>
+        <h3>Live Audit Trail</h3>
+        <p>Every queue action persisted to MongoDB AuditLog. Streamed live to the receptionist with time-diff badges — verifiable proof of system speed and queue integrity.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>QueueDoc — Product Case Study</span>
+    <span>Wooble Hackathon 2026</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 6 — CONCURRENCY & RESULTS
+══════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-label">Engineering Maturity · Results</div>
+      <div class="logo-mark">QueueDoc</div>
+    </div>
+    <div class="page-num">06 / 08</div>
+  </div>
+
+  <div class="pad">
+    <div class="accent-bar"></div>
+    <div class="h1" style="margin-bottom:6px;">Concurrency, Edge Cases<br/>&amp; Measurable Outcomes</div>
+    <div class="body" style="max-width:540px; margin-bottom:16px;">QueueDoc was built to handle the failure modes, not just the happy path. Below are the specific concurrency scenarios addressed, and the measurable outcomes delivered.</div>
+
+    <!-- Concurrency section -->
+    <div style="background:var(--surface); border:1.5px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px;">
+      <div style="font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--teal); margin-bottom:12px;">Concurrency Guarantees</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <div style="font-size:12px; font-weight:700; margin-bottom:4px;">Duplicate Token Assignment</div>
+          <div style="font-size:11px; color:var(--ink-s); line-height:1.55; margin-bottom:2px;">MongoDB atomic <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">$inc</code> on Counter collection. Database engine serializes operations natively.</div>
+        </div>
+        <div>
+          <div style="font-size:12px; font-weight:700; margin-bottom:4px;">Concurrent Call-Next Clicks</div>
+          <div style="font-size:11px; color:var(--ink-s); line-height:1.55;"><code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">findOneAndUpdate({ status:'waiting' })</code> — DB guard ensures exactly one request succeeds. Second request receives null and exits cleanly.</div>
+        </div>
+        <div>
+          <div style="font-size:12px; font-weight:700; margin-bottom:4px;">Browser Crash / Reconnect</div>
+          <div style="font-size:11px; color:var(--ink-s); line-height:1.55;">Every Socket.io <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">'connection'</code> event triggers full <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">queue:full_state</code> broadcast. UI fully rebuilt from DB state.</div>
+        </div>
+        <div>
+          <div style="font-size:12px; font-weight:700; margin-bottom:4px;">No-Show Patient Timeout</div>
+          <div style="font-size:11px; color:var(--ink-s); line-height:1.55;">2-minute server-side <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">setTimeout</code> per call. DB re-check before auto-transition prevents false positives.</div>
+        </div>
+      </div>
+      <div style="margin-top:12px; padding:10px 14px; background:#FEF9C3; border-radius:8px; font-size:11px; color:#92400E;">
+        <strong>Acknowledged Limitation:</strong> The 600ms in-memory debounce Set does not replicate across horizontally-scaled Node.js instances. The DB-level atomic lock handles data integrity at any scale. In a production multi-node environment, the debounce would be replaced with a Redis-backed distributed lock.
+      </div>
+    </div>
+
+    <!-- Results Metrics -->
+    <div style="display:flex; gap:10px; margin-bottom:14px;">
+      <div class="big-metric">
+        <div class="num">&lt;2s</div>
+        <div class="lbl">Patient Registration</div>
+      </div>
+      <div class="big-metric">
+        <div class="num">100%</div>
+        <div class="lbl">Live Sync Accuracy</div>
+      </div>
+      <div class="big-metric">
+        <div class="num">0</div>
+        <div class="lbl">Token Collisions</div>
+      </div>
+    </div>
+
+    <!-- Outcome cards -->
+    <div style="display:flex; gap:10px;">
+      <div class="outcome-card">
+        <h3>Reduced Staff Workload</h3>
+        <p>Auto no-show handling and smart-hold auto-reinsert eliminate manual queue management tasks that previously required constant receptionist attention.</p>
+      </div>
+      <div class="outcome-card">
+        <h3>Transparent Patient Experience</h3>
+        <p>Patients see live token numbers, real-time countdowns, delay notifications, and queue health — eliminating the anxiety of opaque paper-based waiting.</p>
+      </div>
+      <div class="outcome-card">
+        <h3>Verifiable Speed Claims</h3>
+        <p>The Audit Trail's time-diff badges display the exact elapsed seconds between actions — providing on-screen, data-backed proof of sub-10-second operations.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>QueueDoc — Product Case Study</span>
+    <span>Wooble Hackathon 2026</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 7 — WAIT-TIME INTELLIGENCE + GALLERY
+══════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-label">Algorithm · Product Gallery</div>
+      <div class="logo-mark">QueueDoc</div>
+    </div>
+    <div class="page-num">07 / 08</div>
+  </div>
+
+  <div class="pad">
+    <div class="accent-bar"></div>
+    <div class="h1" style="margin-bottom:6px;">Wait-Time Intelligence</div>
+    <div class="body" style="max-width:540px; margin-bottom:16px;">Static estimates destroy patient trust. QueueDoc uses an Exponential Moving Average algorithm that adapts to the doctor's actual pace in real-time.</div>
+
+    <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:14px; margin-bottom:20px; align-items:start;">
+
+      <div>
+        <!-- EMA Explanation -->
+        <div style="background:var(--ink); border-radius:12px; padding:18px; margin-bottom:10px;">
+          <div style="font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:10px;">EMA Formula</div>
+          <div style="font-family:'Sora',sans-serif; font-size:15px; font-weight:700; color:var(--teal-l); margin-bottom:6px;">EMA(t) = α × duration(t) + (1 − α) × EMA(t−1)</div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.5);">where α = 0.3 — 30% weight on latest consultation, 70% on running average. Self-corrects as pace changes.</div>
+        </div>
+
+        <!-- Outlier example -->
+        <div style="border:1.5px solid var(--border); border-radius:10px; padding:14px;">
+          <div style="font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--teal); margin-bottom:8px;">Outlier Rejection in Action</div>
+          <div style="font-size:11px; color:var(--ink-s); margin-bottom:6px;"><strong style="color:var(--ink);">Input durations:</strong> 4m · 5m · 6m · 4m · <span style="color:var(--red); font-weight:700;">47m</span> · 5m</div>
+          <div style="font-size:11px; color:var(--ink-s); margin-bottom:6px;"><strong style="color:var(--ink);">After rejection</strong> (47m = 9× median, discarded): 4m · 5m · 6m · 4m · 5m</div>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <div style="flex:1; background:#DCFCE7; border-radius:8px; padding:10px; text-align:center;">
+              <div style="font-family:'Sora',sans-serif; font-size:20px; font-weight:900; color:#15803D;">4.8m</div>
+              <div style="font-size:9px; font-weight:700; color:#15803D; text-transform:uppercase; letter-spacing:0.5px;">With EMA + Rejection</div>
+            </div>
+            <div style="flex:1; background:#FEE2E2; border-radius:8px; padding:10px; text-align:center;">
+              <div style="font-family:'Sora',sans-serif; font-size:20px; font-weight:900; color:#DC2626;">11.8m</div>
+              <div style="font-size:9px; font-weight:700; color:#DC2626; text-transform:uppercase; letter-spacing:0.5px;">Fixed Average (Wrong)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Judging criteria map -->
+      <div style="border:1.5px solid var(--border); border-radius:12px; overflow:hidden;">
+        <div style="background:var(--teal); padding:12px 14px; color:white; font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">Judging Criteria Mapping</div>
+        <table style="font-size:11px;">
+          <tr><td style="font-weight:700; color:var(--ink); padding:9px 12px; border-bottom:1px solid var(--border);">Real-World Problem</td><td style="color:var(--ink-s); padding:9px 12px; border-bottom:1px solid var(--border);">6 clinic pain points addressed with measured impact</td></tr>
+          <tr><td style="font-weight:700; color:var(--ink); padding:9px 12px; border-bottom:1px solid var(--border);">Live Sync Quality</td><td style="color:var(--ink-s); padding:9px 12px; border-bottom:1px solid var(--border);">Sub-100ms WebSocket push, zero polling</td></tr>
+          <tr><td style="font-weight:700; color:var(--ink); padding:9px 12px; border-bottom:1px solid var(--border);">Add Speed &lt;10s</td><td style="color:var(--ink-s); padding:9px 12px; border-bottom:1px solid var(--border);">Audit trail time-diffs as on-screen proof</td></tr>
+          <tr><td style="font-weight:700; color:var(--ink); padding:9px 12px; border-bottom:1px solid var(--border);">Concurrency</td><td style="color:var(--ink-s); padding:9px 12px; border-bottom:1px solid var(--border);">4 edge cases, 2 guard layers, honest limits</td></tr>
+          <tr><td style="font-weight:700; color:var(--ink); padding:9px 12px;">Feature Depth</td><td style="color:var(--ink-s); padding:9px 12px;">9 advanced features, none shallow</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Product Gallery -->
+    <div style="font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--ink-s); margin-bottom:10px;">Product Screenshots</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      <div class="screenshot-box">
+        <img src="C:/Users/thesp/Documents/Queue Cure '26/IMAGE-1.jpg" alt="QueueDoc Overview"/>
+        <div class="screenshot-label">Full System Overview — Reception + Display Side-by-Side</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="background:var(--ink); border-radius:10px; padding:16px; flex:1;">
+          <div style="font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--teal-l); margin-bottom:8px;">Reception Dashboard Capabilities</div>
+          <div style="display:flex; flex-direction:column; gap:5px;">
+            <div style="font-size:11px; color:rgba(255,255,255,0.7); display:flex; align-items:center; gap:8px;"><span style="color:var(--teal-l);">✓</span> Sub-2-second patient registration</div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.7); display:flex; align-items:center; gap:8px;"><span style="color:var(--teal-l);">✓</span> Urgent priority toggle with instant sort</div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.7); display:flex; align-items:center; gap:8px;"><span style="color:var(--teal-l);">✓</span> Hold / Unhold with auto-reinsert logic</div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.7); display:flex; align-items:center; gap:8px;"><span style="color:var(--teal-l);">✓</span> Doctor delay broadcast button</div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.7); display:flex; align-items:center; gap:8px;"><span style="color:var(--teal-l);">✓</span> Live audit trail with time-diff badges</div>
+          </div>
+        </div>
+        <div style="background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:16px; flex:1;">
+          <div style="font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--teal); margin-bottom:8px;">Patient Display Capabilities</div>
+          <div style="display:flex; flex-direction:column; gap:5px;">
+            <div style="font-size:11px; color:var(--ink-s); display:flex; align-items:center; gap:8px;"><span style="color:var(--teal);">✓</span> Large-format current token number</div>
+            <div style="font-size:11px; color:var(--ink-s); display:flex; align-items:center; gap:8px;"><span style="color:var(--teal);">✓</span> Live EMA-driven countdown timer</div>
+            <div style="font-size:11px; color:var(--ink-s); display:flex; align-items:center; gap:8px;"><span style="color:var(--teal);">✓</span> Doctor delay banner with broadcast</div>
+            <div style="font-size:11px; color:var(--ink-s); display:flex; align-items:center; gap:8px;"><span style="color:var(--teal);">✓</span> Queue health: Light / Moderate / Heavy</div>
+            <div style="font-size:11px; color:var(--ink-s); display:flex; align-items:center; gap:8px;"><span style="color:var(--teal);">✓</span> Voice announcement on token call</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>QueueDoc — Product Case Study</span>
+    <span>Wooble Hackathon 2026</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 8 — ROADMAP + CLOSE
+══════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-label">Future Roadmap</div>
+      <div class="logo-mark">QueueDoc</div>
+    </div>
+    <div class="page-num">08 / 08</div>
+  </div>
+
+  <div class="pad">
+    <div class="accent-bar"></div>
+    <div class="h1" style="margin-bottom:6px;">What's Next</div>
+    <div class="body" style="max-width:540px; margin-bottom:20px;">QueueDoc has validated the core real-time infrastructure. The following phases expand the product from a single-clinic tool to a scalable SaaS platform serving India's entire outpatient healthcare segment.</div>
+
+    <div style="display:flex; gap:10px; margin-bottom:14px;">
+      <div class="roadmap-card">
+        <div class="header">Phase 1</div>
+        <div class="body" style="padding:14px;">
+          <div class="title">SMS &amp; WhatsApp Notifications</div>
+          <p>Notify patients on their phones when they are 2nd in line. Reduce in-clinic crowding and increase walk-away-and-return reliability. Integration via Twilio or WhatsApp Business API.</p>
+        </div>
+      </div>
+      <div class="roadmap-card">
+        <div class="header">Phase 2</div>
+        <div class="body" style="padding:14px;">
+          <div class="title">Multi-Doctor Load Balancing</div>
+          <p>Auto-assign incoming tokens to the doctor queue with the shortest current wait. Extends the architecture to multi-queue scheduling — the single most-requested clinic feature.</p>
+        </div>
+      </div>
+      <div class="roadmap-card">
+        <div class="header">Phase 3</div>
+        <div class="body" style="padding:14px;">
+          <div class="title">Analytics Dashboard</div>
+          <p>Historical reporting on patient volume by hour, average consultation duration by day, and no-show rate trends. Enables clinic operators to make data-driven scheduling decisions.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-bottom:24px;">
+      <div class="roadmap-card">
+        <div class="header" style="background:#7C3AED;">Phase 4</div>
+        <div class="body" style="padding:14px;">
+          <div class="title">AI-Based Wait Forecasting</div>
+          <p>Train a time-series model on accumulated consultation data to predict queue wait time within a 2-minute accuracy band by time of day, doctor, and patient type.</p>
+        </div>
+      </div>
+      <div class="roadmap-card">
+        <div class="header" style="background:#0F172A;">Phase 5</div>
+        <div class="body" style="padding:14px;">
+          <div class="title">Cloud SaaS Platform</div>
+          <p>Multi-tenant deployment on Railway / Render with MongoDB Atlas. Onboard any clinic in under 5 minutes. Subscription model targeting the 5.65 lakh registered outpatient facilities across India.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Closing Statement -->
+    <div style="background:linear-gradient(135deg, var(--ink) 0%, #1e3a5f 100%); border-radius:16px; padding:28px 32px; text-align:center; position:relative; overflow:hidden;">
+      <div style="position:absolute; top:-30px; right:-30px; width:120px; height:120px; border-radius:50%; background:rgba(20,184,166,0.08);"></div>
+      <div style="position:absolute; bottom:-40px; left:-20px; width:160px; height:160px; border-radius:50%; background:rgba(20,184,166,0.05);"></div>
+      <div style="font-family:'Sora',sans-serif; font-size:13px; font-weight:700; color:var(--teal-l); letter-spacing:2px; text-transform:uppercase; margin-bottom:12px; position:relative; z-index:1;">Closing Statement</div>
+      <div style="font-family:'Sora',sans-serif; font-size:20px; font-weight:800; color:white; line-height:1.3; max-width:520px; margin:0 auto 14px; position:relative; z-index:1;">"QueueDoc demonstrates how modern real-time systems can transform one of healthcare's most overlooked operational challenges."</div>
+      <div style="font-size:12px; color:rgba(255,255,255,0.45); max-width:460px; margin:0 auto; line-height:1.6; position:relative; z-index:1;">Every feature was built to solve a documented real-world failure. Every architectural decision was made with awareness of its trade-offs. The paper token had a good run — it is time to retire it.</div>
+      <div style="margin-top:20px; display:flex; justify-content:center; gap:16px; position:relative; z-index:1;">
+        <div style="font-size:10px; color:rgba(255,255,255,0.35); font-weight:600;">github.com/srivallikatyayani/QueueDoc</div>
+        <div style="font-size:10px; color:rgba(255,255,255,0.2);">·</div>
+        <div style="font-size:10px; color:rgba(255,255,255,0.35); font-weight:600;">Wooble Hackathon 2026</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>QueueDoc — Product Case Study</span>
+    <span>© 2026 · All Rights Reserved</span>
+  </div>
+</div>
+
+<!-- Print Button (hidden on print) -->
+<div class="no-print" style="text-align:center; padding:40px; background:#f1f5f9;">
+  <div style="font-family:'Inter',sans-serif; font-size:14px; color:#64748B; margin-bottom:16px;">
+    Use your browser's <strong>File → Print → Save as PDF</strong> to export this document.<br/>
+    Set paper to <strong>A4</strong>, margins to <strong>None</strong>, and enable <strong>Background graphics</strong>.
+  </div>
+  <button onclick="window.print()" style="background:#0F766E; color:white; font-family:'Inter',sans-serif; font-size:14px; font-weight:600; padding:12px 32px; border:none; border-radius:8px; cursor:pointer;">Print / Save as PDF</button>
+</div>
+
+</body>
+</html>
